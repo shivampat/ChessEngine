@@ -7,11 +7,11 @@ pygame.init()
 
 ### Pygame settings and constants
 # Screen settings
-FPS = 60
+FPS = 30
 FramePerSec = pygame.time.Clock()
 
 # Screen sizing 
-GRID_SIZE = 93
+GRID_SIZE = 100 
 SCREEN_WIDTH = GRID_SIZE * 8 
 SCREEN_HEIGHT = GRID_SIZE * 8 
 
@@ -26,6 +26,7 @@ BLACK = (0, 0, 0)
 SQUARE1 = (235, 236, 208)
 SQUARE2 = (115, 149, 82)
 HIGHLIGHT = (0, 0, 255)
+CHECK_COLOR = (255, 0, 0)
 
 ### Load images
 def loadImages():
@@ -60,6 +61,9 @@ def drawBoard(pieceAtAttention=None):
     boardLayout = BOARD.getBoardLayout()
     letters = list(boardLayout.keys())
     legalMoves = []
+
+    kingPosition = BOARD.getKingPosition(BOARD.getTurn())
+
     if pieceAtAttention:
         legalMoves = BOARD.getLegalMoves(pieceAtAttention)
     for i in range(8):
@@ -71,9 +75,12 @@ def drawBoard(pieceAtAttention=None):
             piece = boardLayout[letters[i]][7 - j]
             if piece != '': 
                 DISPLAYSURF.blit(piecePics[piece], (i * GRID_SIZE, j * GRID_SIZE))
+            if (letters[i] + str(8-j)) == kingPosition and BOARD.isCheck(kingPosition):
+                print(f"{BOARD.getTurn()} is in check!")
+                pygame.draw.rect(DISPLAYSURF, CHECK_COLOR, (i * GRID_SIZE, j * GRID_SIZE, GRID_SIZE, GRID_SIZE), 3) 
             if pieceAtAttention and (i, j) in [chessToPixelsCoords(move) for move in legalMoves]:
                 pygame.draw.rect(DISPLAYSURF, HIGHLIGHT, (i * GRID_SIZE, j * GRID_SIZE, GRID_SIZE, GRID_SIZE), 3)
-
+            
 if __name__ == '__main__':
     BOARD = Board()
     piecePics = loadImages()
@@ -82,25 +89,27 @@ if __name__ == '__main__':
     pieceAtAttention = None
 
     while True:
-        # Quitting logic 
         for event in pygame.event.get():
-            if event.type == QUIT:
+            # Quitting logic 
+            if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+            # Mouse click logic 
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_pos = pygame.mouse.get_pos()
+                if not pieceClicked and BOARD.getPieceAtPosition(pixelsToChessCoords(mouse_pos[0], mouse_pos[1])) != '':
+                    pieceClicked = True
+                    chessPosition = pixelsToChessCoords(mouse_pos[0], mouse_pos[1])
+                    pieceAtAttention = chessPosition
+                elif pieceClicked and pixelsToChessCoords(mouse_pos[0], mouse_pos[1]) in BOARD.getLegalMoves(pieceAtAttention):
+                    BOARD.makeMove(pieceAtAttention, pixelsToChessCoords(mouse_pos[0], mouse_pos[1]))
+                    pieceClicked = False
+                    pieceAtAttention = None
+                else:
+                    pieceClicked = False
+                    pieceAtAttention = None
 
-        mouse_pos = pygame.mouse.get_pos()
-        if pygame.mouse.get_pressed()[0]:
-            if not pieceClicked and BOARD.getPieceAtPosition(pixelsToChessCoords(mouse_pos[0], mouse_pos[1])) != '':
-                pieceClicked = True
-                chessPosition = pixelsToChessCoords(mouse_pos[0], mouse_pos[1])
-                pieceAtAttention = chessPosition
-            elif pieceClicked and pixelsToChessCoords(mouse_pos[0], mouse_pos[1]) in BOARD.getLegalMoves(pieceAtAttention):
-                BOARD.makeMove(pieceAtAttention, pixelsToChessCoords(mouse_pos[0], mouse_pos[1]))
-                pieceClicked = False
-                pieceAtAttention = None
-            else:
-                pieceClicked = False
-                pieceAtAttention = None
+        pygame.display.set_caption("Chess | " + BOARD.getTurn() + "'s turn")
 
         # Draw the board
         drawBoard(pieceAtAttention)
