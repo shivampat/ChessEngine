@@ -25,8 +25,9 @@ WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 SQUARE1 = (235, 236, 208)
 SQUARE2 = (115, 149, 82)
-HIGHLIGHT = (0, 0, 255)
+HIGHLIGHT = (0, 255, 255)
 CHECK_COLOR = (255, 0, 0)
+SELECTION = (217, 242, 170) 
 
 ### Load images
 def loadImages():
@@ -45,48 +46,38 @@ def loadImages():
     return piecePics
 
 def pixelsToChessCoords(x, y):
-    rowNum = 8 - (y // GRID_SIZE)
-    colLetter = list(BOARD.getBoardLayout().keys())[x // GRID_SIZE] 
-    return colLetter + str(rowNum)
+    return (x // GRID_SIZE, 7 - y // GRID_SIZE)
 
-def chessToPixelsCoords(chessCoords):
-    colLetter = chessCoords[0]
-    rowNum = int(chessCoords[1])
-    colNum = ord(colLetter) - 97
-    x = colNum 
-    y = (8 - rowNum) 
-    return (x, y)
+def drawGrid(pieceAtAttention=None):
+    for i in range(8):
+        for j in range(7, -1, -1):
+            if (i + j) % 2 == 0:
+                pygame.draw.rect(DISPLAYSURF, SQUARE1, (i * GRID_SIZE, (7-j) * GRID_SIZE, GRID_SIZE, GRID_SIZE))
+            else:
+                pygame.draw.rect(DISPLAYSURF, SQUARE2, (i * GRID_SIZE, (7-j) * GRID_SIZE, GRID_SIZE, GRID_SIZE))
+            if pieceAtAttention is not None and BOARD.getLegalMoves(pieceAtAttention) is not None and (i, j) in BOARD.getLegalMoves(pieceAtAttention):
+                # print(i * GRID_SIZE, j * GRID_SIZE)
+                # pygame.draw.rect(DISPLAYSURF, HIGHLIGHT, (i * GRID_SIZE, (7-j) * GRID_SIZE, GRID_SIZE, GRID_SIZE))
+                pygame.draw.circle(DISPLAYSURF, HIGHLIGHT, (i * GRID_SIZE + GRID_SIZE // 2, (7-j) * GRID_SIZE + GRID_SIZE // 2), GRID_SIZE // 4)
+            if pieceAtAttention is not None and (i, j) == pieceAtAttention:
+                pygame.draw.rect(DISPLAYSURF, SELECTION, (i * GRID_SIZE, (7-j) * GRID_SIZE, GRID_SIZE, GRID_SIZE))
+            if BOARD.isBlackChecked and (i, j) == BOARD.blackKingPos:
+                pygame.draw.rect(DISPLAYSURF, CHECK_COLOR, (i * GRID_SIZE, (7-j) * GRID_SIZE, GRID_SIZE, GRID_SIZE))
 
-def drawBoard(pieceAtAttention=None):
-    boardLayout = BOARD.getBoardLayout()
-    letters = list(boardLayout.keys())
-    legalMoves = []
 
-    kingPosition = BOARD.getKingPosition(BOARD.getTurn())
-
-    if pieceAtAttention:
-        legalMoves = BOARD.getLegalMoves(pieceAtAttention)
+def drawPieces(boardLayout):
     for i in range(8):
         for j in range(8):
-            if (i + j) % 2 == 0:
-                pygame.draw.rect(DISPLAYSURF, SQUARE1, (i * GRID_SIZE, j * GRID_SIZE, GRID_SIZE, GRID_SIZE))
-            else:
-                pygame.draw.rect(DISPLAYSURF, SQUARE2, (i * GRID_SIZE, j * GRID_SIZE, GRID_SIZE, GRID_SIZE))
-            piece = boardLayout[letters[i]][7 - j]
-            if piece != '': 
-                DISPLAYSURF.blit(piecePics[piece], (i * GRID_SIZE, j * GRID_SIZE))
-            if (letters[i] + str(8-j)) == kingPosition and BOARD.isCheck(kingPosition):
-                print(f"{BOARD.getTurn()} is in check!")
-                pygame.draw.rect(DISPLAYSURF, CHECK_COLOR, (i * GRID_SIZE, j * GRID_SIZE, GRID_SIZE, GRID_SIZE), 3) 
-            if pieceAtAttention and (i, j) in [chessToPixelsCoords(move) for move in legalMoves]:
-                pygame.draw.rect(DISPLAYSURF, HIGHLIGHT, (i * GRID_SIZE, j * GRID_SIZE, GRID_SIZE, GRID_SIZE), 3)
-            
+            piece = boardLayout[i][j]
+            if piece != '':
+                DISPLAYSURF.blit(piecePics[piece], (i * GRID_SIZE, (7-j) * GRID_SIZE))
+
 if __name__ == '__main__':
     BOARD = Board()
     piecePics = loadImages()
 
     pieceClicked = False
-    pieceAtAttention = None
+    pieceAtAttention = None 
 
     while True:
         for event in pygame.event.get():
@@ -97,22 +88,24 @@ if __name__ == '__main__':
             # Mouse click logic 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_pos = pygame.mouse.get_pos()
-                if not pieceClicked and BOARD.getPieceAtPosition(pixelsToChessCoords(mouse_pos[0], mouse_pos[1])) != '':
+                chess_pos = pixelsToChessCoords(mouse_pos[0], mouse_pos[1])
+                boardLayout = BOARD.getBoardLayout()
+                if not pieceClicked and boardLayout[chess_pos[0]][chess_pos[1]] != '':
+                    pieceAtAttention = chess_pos 
                     pieceClicked = True
-                    chessPosition = pixelsToChessCoords(mouse_pos[0], mouse_pos[1])
-                    pieceAtAttention = chessPosition
-                elif pieceClicked and pixelsToChessCoords(mouse_pos[0], mouse_pos[1]) in BOARD.getLegalMoves(pieceAtAttention):
-                    BOARD.makeMove(pieceAtAttention, pixelsToChessCoords(mouse_pos[0], mouse_pos[1]))
+                elif pieceClicked and chess_pos in BOARD.getLegalMoves(pieceAtAttention):
+                    BOARD.makeMove(pieceAtAttention, chess_pos)
                     pieceClicked = False
                     pieceAtAttention = None
                 else:
                     pieceClicked = False
                     pieceAtAttention = None
-
+        # print(pygame.mouse.get_pos())
         pygame.display.set_caption("Chess | " + BOARD.getTurn() + "'s turn")
 
         # Draw the board
-        drawBoard(pieceAtAttention)
+        drawGrid(pieceAtAttention)
+        drawPieces(BOARD.getBoardLayout())
                 
         pygame.display.update()
         FramePerSec.tick(FPS)
