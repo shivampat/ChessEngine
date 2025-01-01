@@ -3,6 +3,7 @@ class Piece:
         self.color = "white" if piece.isupper() else "black"
         self.piece = piece
         self.boardLayout = boardLayout
+        self.moved = False
         self.x = pos[0]
         self.y = pos[1]
 
@@ -143,6 +144,10 @@ class Piece:
     def changePosition(self, newPos):
         self.x = newPos[0]
         self.y = newPos[1]
+        self.moved = True
+
+    def didPieceMove(self):
+        return self.moved
     
     def changeLayout(self, newLayout):
         self.boardLayout = newLayout
@@ -251,6 +256,7 @@ class King(Piece):
                       (self.boardLayout[x][y].islower() and self.color == "white") or \
                           (self.boardLayout[x][y].isupper() and self.color == "black"):
                     legalMoves.append((x, y))
+
         return legalMoves
     
     def isChecked(self):
@@ -310,13 +316,12 @@ def doesMoveCauseCheck(boardLayout, start, end, kingPos):
     tempLayout = [row.copy() for row in boardLayout]
     tempLayout[end[0]][end[1]] = tempLayout[start[0]][start[1]]
     tempLayout[start[0]][start[1]] = ''
-    printBoard(tempLayout)
 
     if start != kingPos:
         testKing = King(tempLayout[kingPos[0]][kingPos[1]], kingPos, tempLayout)
         return testKing.isChecked()
     else:
-        testKing = King(tempLayout[start[0]][start[1]], end, tempLayout)
+        testKing = King(tempLayout[end[0]][end[1]], end, tempLayout)
         return testKing.isChecked()
 
 def printBoard(layout):

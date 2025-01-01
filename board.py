@@ -3,18 +3,8 @@ from piece import *
 class Board:
     """
     TODO:
-    - Implement the makeMove method
-    - Implement the getLegalMoves method
-    - Implement checking feature and checkmate
-    - Implement castling
     - Implement en passant
-    - Implement promotion
-    - Implement stalemate
-
-    Methods required: 
-    - makeMove(start, end)
-    - getLegalMoves(piece)
-        * required submethods for diagonals, horizontals, and verticals
+    - Implement promotion (pawn to queen is done, need to add pawn to rook, bishop, knight)
     """
     def __init__(self, fen=None):
         self.fen = "" if fen is None else fen
@@ -23,6 +13,7 @@ class Board:
         self.blackKingPos = (4, 7)
         self.isWhiteChecked = False
         self.isBlackChecked = False
+        self.gameEnded = False
         if fen:
             self.layout = self.__fenToBoardLayout(fen)
             self.__populatePiecesFromLayout()
@@ -53,6 +44,7 @@ class Board:
         print("Black king at", self.blackKingPos)
         print("White checked?", self.isWhiteChecked)
         print("Black checked?", self.isBlackChecked)
+
     def makeMove(self, start, end):
         """
         Make a move on the board
@@ -71,21 +63,47 @@ class Board:
                 print(f"{"White" if oldLayoutPiece.isupper() else "Black"} {oldPiece.pieceName} at {coordsToAlgebraic(end)} captured" + \
                       f" by {"White" if self.layout[start[0]][start[1]].isupper() else "Black"} {self.getPieceType(start).pieceName} at {coordsToAlgebraic(start)}.")
 
+            # Used for castline, calculating rook positions
             if self.layout[start[0]][start[1]] == 'K':
+                castleKingPositions = [(2, 0), (6, 0)]
+                castleRookPositions = [(3, 0), (5, 0)]
+                originalRookPositions = [(0, 0), (7, 0)]
                 self.whiteKingPos = end
             elif self.layout[start[0]][start[1]] == 'k':
+                castleKingPositions = [(2, 7), (6, 7)]
+                castleRookPositions = [(3, 7), (5, 7)]
+                originalRookPositions = [(0, 7), (7, 7)]
                 self.blackKingPos = end
 
+            # Moving rook in castling
+            if self.layout[start[0]][start[1]].lower() == 'k' and end in castleKingPositions:
+                rook = self.pieces[originalRookPositions[castleKingPositions.index(end)][0]][originalRookPositions[castleKingPositions.index(end)][1]]
+                self.layout[castleRookPositions[castleKingPositions.index(end)][0]][castleRookPositions[castleKingPositions.index(end)][1]] = rook.piece
+                self.layout[originalRookPositions[castleKingPositions.index(end)][0]][originalRookPositions[castleKingPositions.index(end)][1]] = ''
+                self.pieces[castleRookPositions[castleKingPositions.index(end)][0]][castleRookPositions[castleKingPositions.index(end)][1]] = rook
+                self.pieces[originalRookPositions[castleKingPositions.index(end)][0]][originalRookPositions[castleKingPositions.index(end)][1]] = None
+                rook.changePosition(castleRookPositions[castleKingPositions.index(end)])
+
+            # Move the piece in layout grid
             self.layout[end[0]][end[1]] = self.layout[start[0]][start[1]]
             self.layout[start[0]][start[1]] = ''
 
+            # Update piece object in piece grid
             self.pieces[end[0]][end[1]] = self.pieces[start[0]][start[1]]
             self.pieces[start[0]][start[1]] = None
             self.pieces[end[0]][end[1]].changePosition(end)
 
+            # Pawn promotion
+            if self.layout[end[0]][end[1]].lower() == 'p' and (end[1] == 0 or end[1] == 7):
+                self.layout[end[0]][end[1]] = 'Q' if self.layout[end[0]][end[1]].isupper() else 'q'
+                self.pieces[end[0]][end[1]] = Queen(self.layout[end[0]][end[1]], end, self.getBoardLayout())
+                print("Pawn promoted to queen!")
+
             self.isWhiteTurn = not self.isWhiteTurn
         else:
             print("Illegal move. Please try again.")
+
+        
         
         # Update check statuses
         if self.isWhiteTurn and self.pieces[self.whiteKingPos[0]][self.whiteKingPos[1]].isChecked():
@@ -99,6 +117,13 @@ class Board:
             self.isWhiteChecked = False 
         
         self.printBoard()
+        if self.isCheckmate():
+            self.gameEnded = True
+            print("Checkmate!")
+            print("Black wins!" if self.isWhiteTurn else "White wins!")
+        elif self.isStalemate():
+            print("Stalemate!")
+            print("It's a draw!")
 
     def getLegalMoves(self, pos):
         """
@@ -110,14 +135,65 @@ class Board:
             print("Empty square.")
             return 
 
+        # Remove moves that cause check
         kingPos = self.whiteKingPos if piece.color == 'white' else self.blackKingPos
-        legalMoves = piece.getLegalMoves()
-        print(legalMoves)
-        for move in legalMoves:
-            if doesMoveCauseCheck(self.getBoardLayout(), pos, move, kingPos):
-                print(move)
-                legalMoves.remove(move)
+        allMoves = piece.getLegalMoves()
+        legalMoves = []
+        for move in allMoves:
+            if not doesMoveCauseCheck(self.getBoardLayout(), pos, move, kingPos):
+                legalMoves.append(move)
+
+        # Add castling moves
+        if piece.color == 'white':
+            rookCoords = [(0, 0), (7, 0)]
+            inBetweenCoords1 = [(1, 0), (2, 0), (3, 0)]
+            inBetweenCoords2 = [(5, 0), (6, 0)]
+            castleCoords = [(2, 0), (6, 0)]
+        else:
+            rookCoords = [(0, 7), (7, 7)]
+            inBetweenCoords1 = [(1, 7), (2, 7), (3, 7)]
+            inBetweenCoords2 = [(5, 7), (6, 7)]
+            castleCoords = [(2, 7), (6, 7)]
+        
+        if piece.pieceName == 'king' and not piece.didPieceMove():
+            rook1 = self.pieces[rookCoords[0][0]][rookCoords[0][1]]
+            rook2 = self.pieces[rookCoords[1][0]][rookCoords[1][1]]
+            if rook1 is not None and rook1.pieceName == 'rook' and not rook1.didPieceMove():
+                for coord in inBetweenCoords1:
+                    if self.layout[coord[0]][coord[1]] != '' or doesMoveCauseCheck(self.getBoardLayout(), pos, coord, kingPos):
+                        break
+                    elif coord == inBetweenCoords1[-1]:
+                        legalMoves.append(castleCoords[0])
+            if rook2 is not None and rook2.pieceName == 'rook' and not rook2.didPieceMove():
+                for coord in inBetweenCoords2:
+                    if self.layout[coord[0]][coord[1]] != '' or doesMoveCauseCheck(self.getBoardLayout(), pos, coord, kingPos):
+                        break
+                    elif coord == inBetweenCoords2[-1]:
+                        legalMoves.append(castleCoords[1])
+
         return legalMoves 
+    
+    def isCheckmate(self):
+        king = self.pieces[self.whiteKingPos[0]][self.whiteKingPos[1]] if self.isWhiteTurn else self.pieces[self.blackKingPos[0]][self.blackKingPos[1]]
+        if king.isChecked():
+            for i in range(8):
+                for j in range(8):
+                    if self.layout[i][j] != '' and self.layout[i][j].isupper() == self.isWhiteTurn:
+                        if self.getLegalMoves((i, j)):
+                            return False
+            return True
+        return False
+
+    def isStalemate(self):
+        king = self.pieces[self.whiteKingPos[0]][self.whiteKingPos[1]] if self.isWhiteTurn else self.pieces[self.blackKingPos[0]][self.blackKingPos[1]]
+        if not king.isChecked():
+            for i in range(8):
+                for j in range(8):
+                    if self.layout[i][j] != '' and self.layout[i][j].isupper() == self.isWhiteTurn:
+                        if self.getLegalMoves((i, j)):
+                            return False
+            return True
+        return False 
 
     def getBoardLayout(self):
         return self.layout

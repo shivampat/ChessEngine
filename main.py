@@ -27,6 +27,7 @@ SQUARE1 = (235, 236, 208)
 SQUARE2 = (115, 149, 82)
 HIGHLIGHT = (0, 255, 255)
 CHECK_COLOR = (255, 0, 0)
+CHECKMATE_COLOR = (0, 0, 0)
 SELECTION = (217, 242, 170) 
 
 ### Load images
@@ -63,7 +64,9 @@ def drawGrid(pieceAtAttention=None):
                 pygame.draw.rect(DISPLAYSURF, SELECTION, (i * GRID_SIZE, (7-j) * GRID_SIZE, GRID_SIZE, GRID_SIZE))
             if BOARD.isBlackChecked and (i, j) == BOARD.blackKingPos or BOARD.isWhiteChecked and (i, j) == BOARD.whiteKingPos:
                 pygame.draw.rect(DISPLAYSURF, CHECK_COLOR, (i * GRID_SIZE, (7-j) * GRID_SIZE, GRID_SIZE, GRID_SIZE))
-
+            if BOARD.isBlackChecked and BOARD.gameEnded and (i, j) == BOARD.blackKingPos or \
+                  BOARD.isWhiteChecked and BOARD.gameEnded and (i, j) == BOARD.whiteKingPos:
+                pygame.draw.rect(DISPLAYSURF, CHECKMATE_COLOR, (i * GRID_SIZE, (7-j) * GRID_SIZE, GRID_SIZE, GRID_SIZE))
 
 def drawPieces(boardLayout):
     for i in range(8):
@@ -73,7 +76,11 @@ def drawPieces(boardLayout):
                 DISPLAYSURF.blit(piecePics[piece], (i * GRID_SIZE, (7-j) * GRID_SIZE))
 
 if __name__ == '__main__':
-    fen = "2rkr3/2pr1ppp/8/8/7B/8/8/K7 b - - 0 1"
+    
+
+
+# if __name__ == '__main__':
+    fen = "7k/2P5/8/8/8/8/3p4/K7 w - - 0 1"
     BOARD = Board(fen)
     piecePics = loadImages()
 
