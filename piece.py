@@ -259,56 +259,73 @@ class King(Piece):
         verticals = self.getVerticals()
 
         if self.color == "white":
-            for diag in diagonals:
-                if self.boardLayout[diag[0]][diag[1]].lower() in ["b", "q"]:
-                    return True
-            for hor in horizontals:
-                if self.boardLayout[hor[0]][hor[1]].lower() in ["r", "q"]:
-                    return True
-            for vert in verticals:
-                if self.boardLayout[vert[0]][vert[1]].lower() in ["r", "q"]:
-                    return True
+            bishopAndQueen = ["b", "q"]
+            rookAndQueen = ["r", "q"]
+            pawnMoves = [(1, 1), (-1, 1)]
+            pawn = 'p'
+            knight = 'n'
         else:
-            for diag in diagonals:
-                if self.boardLayout[diag[0]][diag[1]].upper() in ["B", "Q"]:
-                    return True
-            for hor in horizontals:
-                if self.boardLayout[hor[0]][hor[1]].upper() in ["R", "Q"]:
-                    return True
-            for vert in verticals:
-                if self.boardLayout[vert[0]][vert[1]].upper() in ["R", "Q"]:
-                    return True
+            bishopAndQueen = ["B", "Q"]
+            rookAndQueen = ["R", "Q"]
+            pawnMoves = [(1, -1), (-1, -1)]
+            pawn = 'P'
+            knight = 'N'
+
+        for diag in diagonals:
+            if self.boardLayout[diag[0]][diag[1]] in bishopAndQueen:
+                return True
+        for hor in horizontals:
+            if self.boardLayout[hor[0]][hor[1]] in rookAndQueen:
+                return True
+        for vert in verticals:
+            if self.boardLayout[vert[0]][vert[1]] in rookAndQueen:
+                return True
                 
         # Pawn checks
-        if self.color == "white":
-            moves = [(1, 1), (-1, 1)]
-            for move in moves:
-                x = self.x + move[0]
-                y = self.y + move[1]
-                if x >= 0 and x < 8 and y >= 0 and y < 8:
-                    if self.boardLayout[x][y] == "p":
-                        return True
-        else:
-            moves = [(1, -1), (-1, -1)]
-            for move in moves:
-                x = self.x + move[0]
-                y = self.y + move[1]
-                if x >= 0 and x < 8 and y >= 0 and y < 8:
-                    if self.boardLayout[x][y] == "P":
-                        return True
-        
-        # Knight checks
-        moves = [(2, 1), (2, -1), (-2, 1), (-2, -1), (1, 2), (1, -2), (-1, 2), (-1, -2)]
-        for move in moves:
+        for move in pawnMoves:
             x = self.x + move[0]
             y = self.y + move[1]
             if x >= 0 and x < 8 and y >= 0 and y < 8:
-                if self.boardLayout[x][y] == "n" and self.color == "white":
+                if self.boardLayout[x][y] == pawn:
                     return True
-                elif self.boardLayout[x][y] == "N" and self.color == "black":
+        
+        # Knight checks
+        knightMoves = [(2, 1), (2, -1), (-2, 1), (-2, -1), (1, 2), (1, -2), (-1, 2), (-1, -2)]
+        for move in knightMoves:
+            x = self.x + move[0]
+            y = self.y + move[1]
+            if x >= 0 and x < 8 and y >= 0 and y < 8:
+                if self.boardLayout[x][y] == knight:
                     return True
 
+        return False
 
     def __str__(self):
         return f'{self.color} king at {self.x}, {self.y}'
     
+def doesMoveCauseCheck(boardLayout, start, end, kingPos):
+    """
+    Check if a move will cause a check
+    """
+    tempLayout = [row.copy() for row in boardLayout]
+    tempLayout[end[0]][end[1]] = tempLayout[start[0]][start[1]]
+    tempLayout[start[0]][start[1]] = ''
+    printBoard(tempLayout)
+
+    if start != kingPos:
+        testKing = King(tempLayout[kingPos[0]][kingPos[1]], kingPos, tempLayout)
+        return testKing.isChecked()
+    else:
+        testKing = King(tempLayout[start[0]][start[1]], end, tempLayout)
+        return testKing.isChecked()
+
+def printBoard(layout):
+    print("  a b c d e f g h")
+    for i in range(7, -1, -1):
+        print(f"{i+1}", end=" ")
+        for j in range(len(layout)):
+            if layout[j][i] == '':
+                print("  ", end="")
+            else:
+                print(layout[j][i] + " ", end="")
+        print()

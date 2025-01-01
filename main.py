@@ -61,7 +61,7 @@ def drawGrid(pieceAtAttention=None):
                 pygame.draw.circle(DISPLAYSURF, HIGHLIGHT, (i * GRID_SIZE + GRID_SIZE // 2, (7-j) * GRID_SIZE + GRID_SIZE // 2), GRID_SIZE // 4)
             if pieceAtAttention is not None and (i, j) == pieceAtAttention:
                 pygame.draw.rect(DISPLAYSURF, SELECTION, (i * GRID_SIZE, (7-j) * GRID_SIZE, GRID_SIZE, GRID_SIZE))
-            if BOARD.isBlackChecked and (i, j) == BOARD.blackKingPos:
+            if BOARD.isBlackChecked and (i, j) == BOARD.blackKingPos or BOARD.isWhiteChecked and (i, j) == BOARD.whiteKingPos:
                 pygame.draw.rect(DISPLAYSURF, CHECK_COLOR, (i * GRID_SIZE, (7-j) * GRID_SIZE, GRID_SIZE, GRID_SIZE))
 
 
@@ -73,7 +73,8 @@ def drawPieces(boardLayout):
                 DISPLAYSURF.blit(piecePics[piece], (i * GRID_SIZE, (7-j) * GRID_SIZE))
 
 if __name__ == '__main__':
-    BOARD = Board()
+    fen = "2rkr3/2pr1ppp/8/8/7B/8/8/K7 b - - 0 1"
+    BOARD = Board(fen)
     piecePics = loadImages()
 
     pieceClicked = False
