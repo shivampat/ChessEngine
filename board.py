@@ -76,7 +76,7 @@ class Board:
                 self.blackKingPos = end
 
             # Moving rook in castling
-            if self.layout[start[0]][start[1]].lower() == 'k' and end in castleKingPositions:
+            if self.layout[start[0]][start[1]].lower() == 'k' and end in castleKingPositions and start in [(4, 0), (4, 7)]:
                 rook = self.pieces[originalRookPositions[castleKingPositions.index(end)][0]][originalRookPositions[castleKingPositions.index(end)][1]]
                 self.layout[castleRookPositions[castleKingPositions.index(end)][0]][castleRookPositions[castleKingPositions.index(end)][1]] = rook.piece
                 self.layout[originalRookPositions[castleKingPositions.index(end)][0]][originalRookPositions[castleKingPositions.index(end)][1]] = ''
@@ -173,6 +173,18 @@ class Board:
 
         return legalMoves 
     
+    def getAllLegalMoves(self, color):
+        """
+        Get all legal moves of a color
+        color: string of color
+        """
+        allLegalMoves = {} 
+        for i in range(8):
+            for j in range(8):
+                if self.layout[i][j] != '' and self.layout[i][j].isupper() == (color == 'white') and self.getLegalMoves((i, j)) != []:
+                    allLegalMoves[(i, j)] = self.getLegalMoves((i, j))
+        return allLegalMoves
+    
     def isCheckmate(self):
         king = self.pieces[self.whiteKingPos[0]][self.whiteKingPos[1]] if self.isWhiteTurn else self.pieces[self.blackKingPos[0]][self.blackKingPos[1]]
         if king.isChecked():
@@ -222,6 +234,18 @@ class Board:
     
     def getTurn(self):
         return "White" if self.isWhiteTurn else "Black"
+    
+    def copy(self):
+        newBoard = Board()
+        newBoard.layout = [row.copy() for row in self.layout]
+        newBoard.pieces = [[piece.copy() if piece is not None else None for piece in row] for row in self.pieces]
+        newBoard.isWhiteTurn = self.isWhiteTurn
+        newBoard.whiteKingPos = self.whiteKingPos
+        newBoard.blackKingPos = self.blackKingPos
+        newBoard.isWhiteChecked = self.isWhiteChecked
+        newBoard.isBlackChecked = self.isBlackChecked
+        newBoard.gameEnded = self.gameEnded
+        return newBoard
 
     def __fenToBoardLayout(self, fen):
         """

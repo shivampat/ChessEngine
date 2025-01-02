@@ -138,6 +138,54 @@ class Piece:
         
         return diags
 
+    def getKnightMoves(self):
+        moves = [(2, 1), (2, -1), (-2, 1), (-2, -1), (1, 2), (1, -2), (-1, 2), (-1, -2)]
+        knightMoves = []
+        for move in moves:
+            x = self.x + move[0]
+            y = self.y + move[1]
+            if x >= 0 and x < 8 and y >= 0 and y < 8:
+                if self.boardLayout[x][y] == "" or \
+                      (self.boardLayout[x][y].islower() and self.color == "white") or \
+                          (self.boardLayout[x][y].isupper() and self.color == "black"):
+                    knightMoves.append((x, y))
+        return knightMoves
+    
+    def getKingMoves(self):
+        moves = [(1, 1), (1, 0), (1, -1), (0, 1), (0, -1), (-1, 1), (-1, 0), (-1, -1)]
+        kingMoves = []
+        for move in moves:
+            x = self.x + move[0]
+            y = self.y + move[1]
+            if x >= 0 and x < 8 and y >= 0 and y < 8:
+                if self.boardLayout[x][y] == "" or \
+                      (self.boardLayout[x][y].islower() and self.color == "white") or \
+                          (self.boardLayout[x][y].isupper() and self.color == "black"):
+                    kingMoves.append((x, y))
+        return kingMoves
+    
+    def getPawnMoves(self):
+        pawnMoves = []
+        if self.color == "white":
+            if self.boardLayout[self.x][self.y + 1] == "":
+                pawnMoves.append((self.x, self.y + 1))
+                if self.y == 1 and self.boardLayout[self.x][self.y + 2] == "":
+                    pawnMoves.append((self.x, self.y + 2))
+            if self.x > 0 and self.boardLayout[self.x - 1][self.y + 1].islower():
+                pawnMoves.append((self.x - 1, self.y + 1))
+            if self.x < 7 and self.boardLayout[self.x + 1][self.y + 1].islower():
+                pawnMoves.append((self.x + 1, self.y + 1))
+        else:
+            if self.boardLayout[self.x][self.y - 1] == "":
+                pawnMoves.append((self.x, self.y - 1))
+                if self.y == 6 and self.boardLayout[self.x][self.y - 2] == "":
+                    pawnMoves.append((self.x, self.y - 2))
+            if self.x > 0 and self.boardLayout[self.x - 1][self.y - 1].isupper():
+                pawnMoves.append((self.x - 1, self.y - 1))
+            if self.x < 7 and self.boardLayout[self.x + 1][self.y - 1].isupper():
+                pawnMoves.append((self.x + 1, self.y - 1))
+        return pawnMoves
+
     def getPosition(self):
         return (self.x, self.y)
     
@@ -151,7 +199,7 @@ class Piece:
     
     def changeLayout(self, newLayout):
         self.boardLayout = newLayout
-
+    
     def __str__(self):
         return f'{self.color} piece at {self.x}, {self.y}'
 
@@ -183,6 +231,11 @@ class Pawn(Piece):
 
         return legalMoves
 
+    def copy(self):
+        newPawn = Pawn(self.piece, (self.x, self.y), self.boardLayout)
+        newPawn.moved = self.moved 
+        return newPawn
+
     def __str__(self):
         return f'{self.color} pawn at {self.x}, {self.y}'
     
@@ -193,6 +246,11 @@ class Rook(Piece):
 
     def getLegalMoves(self):
         return self.getHorizontals() + self.getVerticals()
+
+    def copy(self):
+        newRook = Rook(self.piece, (self.x, self.y), self.boardLayout)
+        newRook.moved = self.moved 
+        return newRook
 
     def __str__(self):
         return f'{self.color} rook at {self.x}, {self.y}'
@@ -215,6 +273,11 @@ class Knight(Piece):
                     legalMoves.append((x, y))
         return legalMoves
 
+    def copy(self):
+        newKnight = Knight(self.piece, (self.x, self.y), self.boardLayout)
+        newKnight.moved = self.moved 
+        return newKnight
+    
     def __str__(self):
         return f'{self.color} knight at {self.x}, {self.y}'
 
@@ -226,6 +289,11 @@ class Bishop(Piece):
     def getLegalMoves(self):
         return self.getDiagonals()
 
+    def copy(self):
+        newBishop = Bishop(self.piece, (self.x, self.y), self.boardLayout)
+        newBishop.moved = self.moved 
+        return newBishop
+    
     def __str__(self):
         return f'{self.color} bishop at {self.x}, {self.y}'
 
@@ -237,6 +305,11 @@ class Queen(Piece):
     def getLegalMoves(self):
         return self.getHorizontals() + self.getVerticals() + self.getDiagonals() 
 
+    def copy(self):
+        newQueen = Queen(self.piece, (self.x, self.y), self.boardLayout)
+        newQueen.moved = self.moved 
+        return newQueen
+    
     def __str__(self):
         return f'{self.color} queen at {self.x}, {self.y}'
 
@@ -305,6 +378,11 @@ class King(Piece):
                     return True
 
         return False
+    
+    def copy(self):
+        newKing = King(self.piece, (self.x, self.y), self.boardLayout)
+        newKing.moved = self.moved 
+        return newKing
 
     def __str__(self):
         return f'{self.color} king at {self.x}, {self.y}'
